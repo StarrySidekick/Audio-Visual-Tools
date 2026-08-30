@@ -82,7 +82,8 @@ interesting rapid-prototyping companion (hot-reload DSP, then wrap).
 
 | Tool | What it does | Price / status |
 |---|---|---|
-| **Syncaila 3.0.5** (Aug 2026) | Fully automatic multi-camera + multi-recorder sync with no timecode needed — the closest commercial fit | Free up to 20 clips / 2 tracks · **$100** one-time |
+| **Premiere `Create Multi-Camera Source Sequences`** (sync point: Audio) | **Batch-pairs a whole bin of camera clips + separate production audio by waveform** — no pre-grouping, no timecode. The closest thing to one-button that exists, and it is already installed | Included |
+| **Syncaila 3.0.5** (Aug 2026) | Automatic multi-camera + multi-recorder sync with no timecode needed — but a round trip: build a sequence with one track per source device, export FCP7 XML, sync, re-import (Premiere may create duplicate clips) | Free up to 20 clips / 2 tracks · **$100** one-time |
 | Premiere `Synchronize` / Merge Clips | Waveform-syncs clips you have already selected and grouped | Included |
 | DaVinci Resolve `Auto Sync Audio` (by waveform) | Same, in the Media Pool; needs loud-enough camera audio and real overlap | Included |
 | Avid AutoSync | Timecode-based | Included |
@@ -91,11 +92,15 @@ interesting rapid-prototyping companion (hot-reload DSP, then wrap).
 | `benfmiller/audalign` | Fingerprint / correlation / spectrogram alignment of many recordings | Free (Python) |
 | `ffmpeg -filter_complex axcorrelate` | Correlates two audio streams | Free — short-lag only, not an offset search |
 
-**Takeaway:** the NLEs all sync by waveform now (which is what retired
-PluralEyes), but they all make *you* do the pairing — select these clips, group
-this bin — and none of them report drift or a confidence number. Syncaila at
-$100 is the buy-before-build answer and should be tried on real footage first.
-The gap left over is a scriptable one: a machine-readable sync report with
-per-pair confidence, clock-drift in ppm, and graph-consistent multicam, fed by
-the drive scan `stringout` already does. See
+**Takeaway:** the one-button workflow already ships free inside Premiere —
+`Create Multi-Camera Source Sequences` with Synchronize Point: Audio batch-pairs
+camera clips to production sound by waveform, no grouping or timecode required.
+That, not Syncaila, is the thing any build here has to beat. What it doesn't do
+is tell you when it failed: unsynced clips are quietly left out of the Processed
+Clips bin with no reason and no confidence number, nothing fits clock drift over
+a long take, and Adobe's own guidance is not to throw a whole day at it at once.
+So the remaining gap is narrow and specific — a machine-readable sync report with
+per-pair confidence, drift in ppm, and graph-consistent multicam, fed by the
+drive scan `stringout` already does. **Measure the built-in's failure rate on
+real footage before building any of it.** See
 [`autosync-scope.md`](autosync-scope.md).

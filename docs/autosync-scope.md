@@ -53,30 +53,63 @@ That reduction is the magic. Everything below is engineering around it.
 
 ## 2. What already exists (verified Aug 2026)
 
+**Correction to an earlier draft of this doc:** Premiere's batch sync was
+underweighted here. `Merge Clips` and `Synchronize` do make you do the pairing
+— but **`Create Multi-Camera Source Sequences` doesn't.** Select a whole bin of
+camera clips *and* the production audio files, set Synchronize Point to Audio,
+and Premiere pairs and syncs the batch by waveform on its own. That is very
+close to the one-button ideal, it's free, and it's already installed. Anything
+built here has to beat it, not duplicate it.
+
 | Tool | What it does | Where it stops | Price |
 |---|---|---|---|
-| **Premiere `Synchronize` / Merge Clips** | Waveform-sync clips you've already selected and grouped | You do the pairing; struggles on long clips and quiet scratch audio; no drift handling | Included |
-| **DaVinci Resolve `Auto Sync Audio` (by waveform)** | Same, in the Media Pool | Needs loud-enough camera audio and overlapping content; fails silently-ish on long-take drift | Free/$295 |
+| **Premiere `Create Multi-Camera Source Sequences`** (sync point: Audio) | **Batch-pairs a bin of camera clips + separate audio files by waveform** — the closest thing to the one-button ideal that already exists | Bogs down on a whole day at once (waveform analysis is heavy); needs a decent scratch level; no drift handling; failures are quiet — unsynced clips are simply left out of the Processed Clips bin with no reason given and no confidence number | Included |
+| **Premiere `Synchronize` / `Merge Clips`** | Waveform-syncs clips you have already selected and grouped | You do the pairing | Included |
+| **DaVinci Resolve `Auto Sync Audio` (by waveform)** | Same idea, in the Media Pool | Needs loud-enough camera audio and real overlap; long-take drift unhandled | Free/$295 |
 | **Avid AutoSync** | Timecode-based | Requires the timecode we're assuming is wrong | Included |
-| **PluralEyes (Maxon/Red Giant)** | *The* original waveform auto-sync — did do the pairing | **Limited maintenance mode since Feb 2023**, no new development | Legacy |
-| **Syncaila 3.0.5** (Aug 2026) | Fully automatic multi-cam/multi-recorder sync, no TC needed — closest commercial fit | Free tier caps at 20 clips / 2 tracks; GUI app, not scriptable; a black box you can't read a confidence number out of | Free tier · **$100 one-time** |
+| **PluralEyes (Maxon/Red Giant)** | *The* original waveform auto-sync — it did do the pairing | **Limited maintenance mode since Feb 2023**, no new development | Legacy |
+| **Syncaila 3.0.5** (Aug 2026) | Automatic multi-cam/multi-recorder sync, no TC needed | **Not a drop-a-folder app**: you build a sequence with clips on one track per source device, export FCP7 XML, sync in Syncaila, export XML, re-import — where Premiere may create duplicate clips. No explicit clock-drift compensation. Free tier caps at 20 clips / 2 tracks | Free tier · **$100 one-time** |
 | `bbc/audio-offset-finder` | MFCC cross-correlation, two files → offset + a "standard score" | Pairwise only, ~0.01 s accuracy, no drift, no video awareness | Free (Python) |
 | `benfmiller/audalign` | Fingerprint + correlation + spectrogram alignment of many recordings | Library, not a post workflow; no NLE output, no drift model | Free (Python) |
 | `ffmpeg -filter_complex axcorrelate` | Correlation of two audio streams | Short-lag only — not an offset *search* across hours | Free |
 
-**Takeaway:** Syncaila at $100 is the honest "buy before build" answer for the
-plain case, and it should get tried first on real footage. The gaps our own
-tool would fill are specific:
+**Takeaway:** the one-button workflow already exists and costs nothing. The
+honest question is no longer "does this exist?" but **"how often does the free
+one fail on my footage, and does it tell me when?"** Syncaila's round-trip XML
+dance is arguably *less* convenient than the built-in; it earns its $100 only
+where the built-in's accuracy falls down.
 
-- **A machine-readable answer.** A CSV/JSON sync report with a confidence
-  number per pair, not a GUI you have to eyeball and export from.
-- **Drift as a first-class output** — ppm slope per pair, not one offset that's
-  correct only in the middle of the take.
-- **Graph-consistent multicam** — cameras aligned to each other *through* the
-  sound roll, with cycle-consistency as a built-in error check.
-- **It plugs into the drive scan we already do.** `stringout` has already
-  probed every file; sync should reuse that manifest, not rescan.
+So the remaining gaps are narrow and specific, and every one of them is about
+what happens at the edges:
+
+- **Silent failure.** Premiere drops what it couldn't sync and says nothing —
+  no reason, no confidence, no candidates. On a doc drive, finding *which* ones
+  it quietly skipped is the afternoon you were trying to save.
+- **Drift.** Nothing here fits a slope. An hour interview off by ~100 ppm ends
+  seconds out, and it looks like a *sync* failure rather than a *drift*
+  failure, which sends you hunting in the wrong place.
+- **Scale.** The built-in is documented as taxing on a full day of waveform
+  analysis. A cached, pruned, offline pass has no reason to be.
+- **A machine-readable answer** that feeds other tools, reuses the `stringout`
+  manifest, and doesn't need a GUI in the loop.
 - **Ambiguity reported, not resolved.** Three plausible offsets is an answer.
+
+### The delivery-mechanism problem
+
+The stated ideal is *press one button inside Premiere*. Worth being blunt about
+what can actually deliver that:
+
+| Path | Actually one button in Premiere? |
+|---|---|
+| `Create Multi-Camera Source Sequences` | **Yes.** Already installed |
+| Syncaila | No — export XML, leave the app, sync, re-import, clean duplicates |
+| This tool as a CLI | No — run it, import the XML it writes |
+| This tool as a UXP panel | Yes, but that's a second project on top of the first |
+
+A Python CLI writing FCP7 XML is *not* a button. It is a batch job you run once
+per drive, which for a documentary ingest is arguably the right shape anyway —
+but it should not be sold as the button. If the button matters more than the
+edge cases, the built-in already wins and this stays unbuilt.
 
 ---
 
@@ -255,10 +288,25 @@ Ranked, and each one flagged in the report as what it is:
 
 ## 7. Build phases
 
+**Phase −1 — measure the baseline (one hour, no code).** Take a real project's
+footage. Select every camera clip *and* every production-audio file in the bin
+→ `Create Multi-Camera Source Sequences` → Synchronize Point: Audio. Then count
+three numbers:
+
+1. how many clips came back **correctly** synced,
+2. how many were **silently left out** of the Processed Clips bin,
+3. how many were synced **wrong** (including drifting off by the end of a long
+   take, which reads as a sync failure but isn't one).
+
+That failure rate is the entire business case. Under ~2%, buy nothing and build
+nothing — the free button already does what was wanted. Above that, the numbers
+say precisely which of the gaps in §2 is the one worth building, and the rest of
+this doc gets pruned to that.
+
 **v0 — the spike (half a day).** Two files in, one offset out. GCC-PHAT plus
-envelope correlation, run against *real footage from the drive* — including a
-known-bad case. This is the go/no-go: if pairing accuracy on actual doc
-material isn't there, buy Syncaila and stop.
+envelope correlation, run against the exact clips Premiere got *wrong* in phase
+−1. If it can't beat the built-in on the built-in's own failures, stop here —
+that's the whole go/no-go, and it costs half a day to answer.
 
 **v1 — the useful tool.** Many-to-many pairing over a `stringout` manifest,
 fingerprint pruning, sync report (CSV/JSON) with confidence, FCP7 XML per sync
@@ -282,10 +330,16 @@ the real footage proves is actually needed.
 - **Where sync lives.** Its own `tools/autosync/`, consuming
   `stringout-manifest/1` — or a `stringout sync` subcommand? Leaning separate
   tool, shared manifest schema, shared XML writer, so neither one bloats.
-- **Try Syncaila first?** $100, and if it nails the actual footage the build
-  drops to v0-only ("does it agree with Syncaila?") or gets shelved entirely.
-  Consistent with the repo's buy-before-build principle, and worth doing before
-  writing v1.
+- **Is a CLI acceptable, or does it have to be a button?** If "one button
+  inside Premiere" is the real requirement rather than a nice-to-have, the
+  built-in already wins and the honest answer is to not build this. A CLI that
+  writes XML is a per-drive batch job, not a button; making it a button means a
+  UXP panel, which is a second project.
+- **Syncaila is probably not the fallback it looked like.** Its round-trip XML
+  workflow (build a sequence, export, sync, re-import, clean duplicate clips) is
+  arguably more friction than the free built-in, and it doesn't claim drift
+  compensation. Worth the $0 trial only if phase −1 shows the built-in failing
+  and the failures look like *pairing* rather than drift.
 - **What the drive actually looks like.** The design assumes camera scratch
   audio exists on essentially everything. If a meaningful share of the footage
   is MOS, §6 stops being a footnote and becomes the main event — worth checking

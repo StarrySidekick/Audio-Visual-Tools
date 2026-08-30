@@ -35,11 +35,13 @@ Pair every camera clip to the right sound roll at the right offset by
 heard — and report each result with a confidence score. Full design in
 [`docs/autosync-scope.md`](autosync-scope.md).
 
-- [ ] **Try Syncaila first** ($100 one-time, free up to 20 clips) on real
-      footage — buy-before-build. If it nails the actual drive, most of what
-      follows gets shelved
+- [ ] **Phase −1, no code:** measure Premiere's own `Create Multi-Camera
+      Source Sequences` (Synchronize Point: Audio) on a real drive — it already
+      batch-pairs camera clips to production sound for free. Count what it got
+      right, what it silently skipped, and what drifted. That failure rate is
+      the entire business case; under ~2%, shelve the rest of this
 - [ ] v0 spike: two files in → offset out (GCC-PHAT + envelope correlation),
-      tested against a known-bad case. The go/no-go
+      run on the clips Premiere got *wrong*. The go/no-go
 - [ ] v1: many-to-many pairing over a `stringout` manifest, landmark
       fingerprinting to prune candidates, `sync-report.csv/json` with
       confidence, FCP7 XML per sync group, review list for flagged clips

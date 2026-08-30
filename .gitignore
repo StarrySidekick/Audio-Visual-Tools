@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+manifest.json
+media_log.csv
+*_ingest/

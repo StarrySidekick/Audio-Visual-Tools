@@ -1,0 +1,79 @@
+# Roadmap
+
+Ordered by (value ÷ effort), honoring the principle: **buy/download before
+build, and never automate taste.**
+
+## Phase 0 — Adopt what exists (no code, ~$0–25)
+
+- [ ] Try **Suggester 2 for macOS as an AUv3 inside Live** — may fully solve
+      the "chords live in another app" problem (free to try).
+- [ ] Learn **Live 12's MIDI Generators** (Stacks/Seed) + Transformations —
+      scale-degree progression generation is already in the DAW.
+- [ ] Install **Ripchord** (free) for chord triggering; build a personal
+      preset pack from favorite Suggester progressions.
+- [ ] In Premiere, make **Automate to Sequence** part of the muscle memory —
+      it's the free last-mile of any stringout workflow.
+- [ ] Optional: **Cauldron ($25)** if in-Premiere sequence building comes up
+      a lot; **Post Haste** (free) for per-project folder templates.
+
+## Phase 1 — `stringout` (assistant editor) — ✅ v1 shipped
+
+Scan drive → media log (CSV/JSON) → stringout timeline (FCP7 XML) into
+Premiere. See [`tools/stringout`](../tools/stringout/).
+
+**v2 candidates (in rough order):**
+- [ ] `--group-by day|card` → one sequence per day/card, plus a master
+- [ ] Bin structure in the XML (clips organized by card/day in the project panel)
+- [ ] Audio analysis during scan: peak/RMS levels, silence %, clipping flags
+      in the media log
+- [ ] Multicam/dual-system helper: match camera clips to sound-roll WAVs by
+      timecode overlap, report sync candidates
+- [ ] HTML "dailies report" — thumbnails (ffmpeg), durations, cards, problems
+
+## Phase 2 — AAF pre-flight analyzer for Pro Tools turnover
+
+The gap no product fills: **triage before the ear-work starts.**
+
+- [ ] Parse the AAF with `pyaaf2` (free, Python): report tracks, clips,
+      channel counts, source files, gaps/overlaps — a turnover manifest
+- [ ] Audio triage per clip (ffmpeg/numpy): 50/60 Hz hum detection (and
+      harmonics), broadband hiss estimate (noise floor), clipping, clicks —
+      a **problem map** for the dialogue edit, so RX passes start with a
+      list of *where to listen*, never an automated fix
+- [ ] Pro Tools session-prep conventions doc: track layout template
+      (DX/PFX/FOLEY/SFX/MX), naming rules, import checklist
+- [ ] Later: generate PT session markers at problem locations (via MIDI
+      file or text export PT can consume)
+
+**Explicit non-goal:** batch-applying RX processing. De-hiss/de-hum
+decisions stay with the ear.
+
+## Phase 3 — Music tools for Ableton
+
+- [ ] `progression` CLI: text in (`"i bVI III bVII in C minor, 4 bars"`) →
+      `.mid` out with proper voicing/voice-leading options — drag into Live.
+      This is the Claude-Code-native version of Suggester: describe, get MIDI
+- [ ] Personal chord-vocabulary library (favorite voicings/progressions as
+      data, rendered to MIDI or Ripchord preset XML)
+- [ ] Later: a MIDI-effect plugin (JUCE) that hosts that vocabulary in-DAW
+
+## Phase 4 — The synth (JUCE)
+
+A personal instrument, developed as code in this repo:
+
+- [ ] Scaffold a JUCE VST3/AU project (CMake-based, builds from CLI)
+- [ ] Start simple: 2-osc subtractive voice + filter + envelopes, parameters
+      chosen *for the film/composition work you actually do* (e.g. pads and
+      textures first, not EDM leads)
+- [ ] Iterate sound design as code changes; version presets in git
+- [ ] Optional much later: AAX build via Avid developer program for Pro Tools
+
+**Prototype path:** consider Cmajor for hot-reload DSP experiments, then
+port the keeper algorithms into the JUCE plugin.
+
+## Parking lot (P5 — logged as encountered)
+
+- Long-interview selects helper (transcript-driven pull lists)
+- Sound-library search that understands your own SFX/Foley collection
+- Reconform diffing for doc re-edits (or just budget for Matchbox if the
+  work pays for it)

@@ -77,3 +77,25 @@ Ableton loads **VST3/AU**. Pro Tools loads **AAX only** — AAX needs Avid's
 an AI assistant works with extremely well, one codebase → VST3+AU for
 Ableton today and AAX for Pro Tools later if wanted. **Cmajor** is the
 interesting rapid-prototyping companion (hot-reload DSP, then wrap).
+
+## 5. Dual-system / multicam sync (no timecode, no slate)
+
+| Tool | What it does | Price / status |
+|---|---|---|
+| **Syncaila 3.0.5** (Aug 2026) | Fully automatic multi-camera + multi-recorder sync with no timecode needed — the closest commercial fit | Free up to 20 clips / 2 tracks · **$100** one-time |
+| Premiere `Synchronize` / Merge Clips | Waveform-syncs clips you have already selected and grouped | Included |
+| DaVinci Resolve `Auto Sync Audio` (by waveform) | Same, in the Media Pool; needs loud-enough camera audio and real overlap | Included |
+| Avid AutoSync | Timecode-based | Included |
+| PluralEyes (Maxon/Red Giant) | The original waveform auto-sync — it *did* do the pairing | **Limited maintenance mode since Feb 2023** |
+| `bbc/audio-offset-finder` | MFCC cross-correlation, two files → offset + prominence score (~0.01 s) | Free (Python) |
+| `benfmiller/audalign` | Fingerprint / correlation / spectrogram alignment of many recordings | Free (Python) |
+| `ffmpeg -filter_complex axcorrelate` | Correlates two audio streams | Free — short-lag only, not an offset search |
+
+**Takeaway:** the NLEs all sync by waveform now (which is what retired
+PluralEyes), but they all make *you* do the pairing — select these clips, group
+this bin — and none of them report drift or a confidence number. Syncaila at
+$100 is the buy-before-build answer and should be tried on real footage first.
+The gap left over is a scriptable one: a machine-readable sync report with
+per-pair confidence, clock-drift in ppm, and graph-consistent multicam, fed by
+the drive scan `stringout` already does. See
+[`autosync-scope.md`](autosync-scope.md).

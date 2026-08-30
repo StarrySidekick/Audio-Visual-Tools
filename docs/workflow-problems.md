@@ -70,3 +70,26 @@ and "shape the material." Composition reality: hunting for the right
 instrument/sound for the job. These accumulate small tools over time —
 multicam sync helpers, selects-pulling aids, sound-library search, etc.
 Logged here as they come up.
+
+## P6 — Sync when there's nothing to sync to
+
+Dual-system and multicam material arrives with the sync aids missing or wrong:
+no slate/clap, unjammed or drifted timecode, camera and recorder files named
+by two unrelated conventions, and a sound roll that runs continuously across
+many camera clips.
+
+- The *pairing* problem comes first and is the real one: which of 40 WAVs
+  belongs to `MVI_0413.MOV`, and where inside it? Every NLE's waveform sync
+  assumes you already answered that by selecting and grouping the clips.
+- Long takes drift. Independent clocks at a nominal 48 kHz differ by enough
+  that an hour-long interview that starts in sync can end seconds out — so a
+  single offset is the wrong shape of answer.
+- Multicam: two cameras may not correlate to each other at all, even though
+  both correlate to the sound recorder.
+- Getting it wrong quietly is worse than not trying. Without a per-pair
+  confidence number, you have to check all of it by hand anyway.
+
+**What's needed:** pair and align by *content* — the camera's scratch audio is
+a fingerprint of the same room the boom heard — and report every result with a
+confidence score and a drift figure, so the manual pass is a handful of flagged
+clips instead of the whole drive. *(→ [`docs/autosync-scope.md`](autosync-scope.md), scoping)*

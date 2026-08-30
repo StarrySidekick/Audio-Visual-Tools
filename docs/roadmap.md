@@ -26,9 +26,29 @@ Premiere. See [`tools/stringout`](../tools/stringout/).
 - [ ] Bin structure in the XML (clips organized by card/day in the project panel)
 - [ ] Audio analysis during scan: peak/RMS levels, silence %, clipping flags
       in the media log
-- [ ] Multicam/dual-system helper: match camera clips to sound-roll WAVs by
-      timecode overlap, report sync candidates
 - [ ] HTML "dailies report" — thumbnails (ffmpeg), durations, cards, problems
+
+## Phase 1.5 — `autosync` (sync with no slate, no timecode, no labels)
+
+Pair every camera clip to the right sound roll at the right offset by
+*content* — camera scratch audio is a fingerprint of the same room the boom
+heard — and report each result with a confidence score. Full design in
+[`docs/autosync-scope.md`](autosync-scope.md).
+
+- [ ] **Try Syncaila first** ($100 one-time, free up to 20 clips) on real
+      footage — buy-before-build. If it nails the actual drive, most of what
+      follows gets shelved
+- [ ] v0 spike: two files in → offset out (GCC-PHAT + envelope correlation),
+      tested against a known-bad case. The go/no-go
+- [ ] v1: many-to-many pairing over a `stringout` manifest, landmark
+      fingerprinting to prune candidates, `sync-report.csv/json` with
+      confidence, FCP7 XML per sync group, review list for flagged clips
+- [ ] v2: clock-drift fitting (ppm slope, not one offset) + graph solve for
+      multicam with cycle-consistency checking
+- [ ] v3: fallbacks for MOS / no-shared-audio material
+
+**Dependency note:** this is the one tool that can't stay stdlib-only —
+proposal is numpy (plus ffmpeg, as always) and nothing else.
 
 ## Phase 2 — AAF pre-flight analyzer for Pro Tools turnover
 

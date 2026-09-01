@@ -18,6 +18,7 @@ that need ears and taste.
 | Tool | Status | What it does |
 |---|---|---|
 | [`tools/stringout`](tools/stringout/) | **v1, working** | The "assistant editor": scan a footage drive, log every clip (CSV + JSON), and generate a stringout timeline (FCP7 XML) that imports straight into Premiere |
+| `tools/silt` | **scoping** | A texture/drone instrument for scoring picture — written in Cmajor so it hot-reloads while Ableton plays, exported to VST3/AU via JUCE ([scope](docs/silt-scope.md)) |
 | `tools/autosync` | **scoping** | Sync sound to picture with no slate, no timecode and no labels — pair and align by content, with a confidence score per clip ([scope](docs/autosync-scope.md)) |
 
 ## Docs
@@ -25,6 +26,7 @@ that need ears and taste.
 - [`docs/workflow-problems.md`](docs/workflow-problems.md) — the actual problems this repo exists to solve, in plain language
 - [`docs/existing-tools.md`](docs/existing-tools.md) — what already exists (free/cheap) so we don't rebuild solved problems
 - [`docs/roadmap.md`](docs/roadmap.md) — what to build next, in what order, and why
+- [`docs/silt-scope.md`](docs/silt-scope.md) — design scope for `silt`: the texture instrument, and why Cmajor before JUCE
 - [`docs/autosync-scope.md`](docs/autosync-scope.md) — design scope for `autosync`: how to sync clips with nothing to go on
 
 ## Principles

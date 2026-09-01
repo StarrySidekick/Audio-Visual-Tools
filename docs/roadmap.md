@@ -79,19 +79,44 @@ decisions stay with the ear.
       data, rendered to MIDI or Ripchord preset XML)
 - [ ] Later: a MIDI-effect plugin (JUCE) that hosts that vocabulary in-DAW
 
-## Phase 4 — The synth (JUCE)
+## Phase 4 — `silt`, the texture instrument — **pulled forward, next up**
 
-A personal instrument, developed as code in this repo:
+A personal instrument developed as code. Full design in
+[`docs/silt-scope.md`](silt-scope.md).
 
-- [ ] Scaffold a JUCE VST3/AU project (CMake-based, builds from CLI)
-- [ ] Start simple: 2-osc subtractive voice + filter + envelopes, parameters
-      chosen *for the film/composition work you actually do* (e.g. pads and
-      textures first, not EDM leads)
-- [ ] Iterate sound design as code changes; version presets in git
-- [ ] Optional much later: AAX build via Avid developer program for Pro Tools
+Out of roadmap order on purpose: it's the most fun thing here, and the
+iteration loop turns out to be good enough to make that a real argument rather
+than an indulgence.
 
-**Prototype path:** consider Cmajor for hot-reload DSP experiments, then
-port the keeper algorithms into the JUCE plugin.
+**Toolchain decision: Cmajor first, JUCE at the end.** The Cmajor VST/AU plugin
+JIT-compiles, so saving a source file rebuilds the patch *while Live is
+playing*. JUCE's loop — compile, rescan, reload the set — is a minute or two per
+idea. Develop in Cmajor, then `cmaj generate --target=juce` for a native C++
+project and a real VST3/AU.
+
+- [ ] m0: a sine that responds to MIDI, loaded in Live. Proves the toolchain end
+      to end — plugin installed, patch loading, hot reload actually reloading
+- [ ] m1: playable pad — osc pair + `tpt::svf` + long `FixedASR` + voice
+      allocator. Settles the parameter list (parameter *lists* can't hot-reload,
+      only the DSP behind them)
+- [ ] m2: the grain cloud — the custom DSP, and the instrument's personality
+- [ ] m3: field recordings from your own shoots as patch externals — the picture
+      work feeding the music work
+- [ ] m4: drift modulation + FDN diffusion tail
+- [ ] m5: `cmaj generate --target=juce` → build a real VST3/AU that runs without
+      the Cmajor plugin. Insurance as much as a milestone
+- [ ] m6, genuinely last: a custom GUI. The auto-generated one is fine for ages
+
+**Honest check:** Ableton's own **Granulator III** (free with Live 12 Suite +
+Max for Live, by Robert Henke) beats a v1 of this on features. The reasons to
+build anyway are that it's *code* — versioned, diffable, AI-editable, which is
+the whole of P4 — that it plays your own field recordings, that its parameters
+are ranged for film (20-second attacks, drift in cycles per minute), and that
+the learning is the point. If none of those matter on a given week, use
+Granulator and lose nothing.
+
+**Not doing:** AAX. Cmajor exports VST3/AU/CLAP; Pro Tools would mean the JUCE
+path plus Avid's developer program, and that's a much later, separate decision.
 
 ## Parking lot (P5 — logged as encountered)
 

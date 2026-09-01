@@ -73,10 +73,32 @@ Ableton loads **VST3/AU**. Pro Tools loads **AAX only** — AAX needs Avid's
 | nih-plug | Rust | VST3/CLAP | Free | Great DX; fine for Ableton, no Pro Tools |
 | Elementary Audio | JS/TS | Web/DIY native | Open-source | Prototyping, not shipping plugins |
 
-**Takeaway:** **JUCE** is the recommendation: free at our scale, C++ that
-an AI assistant works with extremely well, one codebase → VST3+AU for
-Ableton today and AAX for Pro Tools later if wanted. **Cmajor** is the
-interesting rapid-prototyping companion (hot-reload DSP, then wrap).
+**Takeaway (revised):** **Cmajor first, JUCE at the end.** The earlier read had
+these the other way round, on the strength of JUCE being the industry standard —
+which it is. But the deciding factor for a personal instrument is the iteration
+loop, and they aren't close. The Cmajor VST/AU plugin JIT-compiles, so re-saving
+a source file rebuilds and reloads the patch *while Live is still playing*;
+JUCE's loop is compile → Ableton rescans → reload the set → your patch resets,
+a minute or two per idea. So: develop in Cmajor, then `cmaj generate
+--target=juce` for a native C++ project that builds VST3/AU (and CLAP). Cmajor
+is the workbench, JUCE the delivery truck — and the exported C++ is what
+survives if Cmajor (~740 stars, small team, infrequent releases) ever stops.
+JUCE 9 shipped July 2026, same licensing as 8. Note Cmajor exports no AAX.
+
+## 6. Granular / texture instruments (the buy-before-build check for `silt`)
+
+| Tool | What it does | Price / status |
+|---|---|---|
+| **Granulator III** (Robert Henke / Ableton) | Granular instrument for Live 12: two granular playback modes, MPE modulation of grain size/shape/position, real-time audio capture | **Free** — needs Live 12 Suite + Max for Live |
+| Live 12 built-ins | Drift, Meld, Hybrid Reverb, Spectral devices | Included |
+| Output Portal / Arturia Efx Fragments | Granular effects processors | ~$99–149 |
+
+**Takeaway:** on features, Granulator III beats anything we'd write as a v1, and
+it costs nothing. Building [`silt`](silt-scope.md) is justified by different
+things: it's *code* (versioned, diffable, editable from a terminal — the whole
+of P4), it plays your own field recordings as patch externals, its parameters
+are ranged for scoring rather than for beats, and the learning is the product.
+Not by beating Henke at granular synthesis.
 
 ## 5. Dual-system / multicam sync (no timecode, no slate)
 

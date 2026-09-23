@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name That Note</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Name That Note</h1></header>
+  <p class="lede">You hear a C, then a mystery note. Find it on the keyboard.</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Mode</span>
+        <select id="mode"><option value="practice">Practice</option><option value="sprint">Sprint (60 s)</option></select></label>
+      <label class="field"><span>Reference</span>
+        <select id="ref"><option value="c">Play C first (relative pitch)</option><option value="none">No reference (absolute pitch)</option></select></label>
+      <label class="field"><span>Notes</span>
+        <select id="set"><option value="white">White keys only</option><option value="all">All 12</option></select></label>
+      <label class="field"><span>Key labels</span><input type="checkbox" id="labels" checked></label>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>What you are training</h2>
+    <p><strong>Relative pitch</strong> is hearing a note in relation to one you already know. With the C reference on, you are really measuring the distance (the interval) from C, which is how most musicians identify notes. <strong>Absolute pitch</strong> (perfect pitch) is naming a note with no reference. It is rare in adults, so treat the no-reference mode as a curiosity.</p>
+    <p>Keyboard shortcut: press the letter (C, D, E, F, G, A, B) to answer with a white key.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { pianoChoices, persistControl } from '../js/ui.js';
+import { playEvents, playNote } from '../js/audio.js';
+import { midiToName, isBlackKey, pickFresh, intervalBySemis } from '../js/theory.js';
+
+const ref = persistControl(document.getElementById('ref'), 'note:ref', () => quiz.refresh());
+const set = persistControl(document.getElementById('set'), 'note:set', () => quiz.refresh());
+const labels = persistControl(document.getElementById('labels'), 'note:labels', () => quiz.refresh());
+
+const LOW = 60, HIGH = 71; // C4..B4
+
+function newQuestion(prev) {
+  const pool = [];
+  for (let m = LOW; m <= HIGH; m++) if (set() === 'all' || !isBlackKey(m)) pool.push(m);
+  const target = pickFresh(pool, prev?.answer);
+  const withRef = ref() === 'c';
+  const name = (m) => midiToName(m, { octave: false });
+
+  const hotkeys = {};
+  for (const m of pool) if (!isBlackKey(m)) hotkeys[name(m).toLowerCase()] = m;
+
+  return {
+    answer: target,
+    hotkeys,
+    play: () => withRef
+      ? playEvents([{ midi: LOW, at: 0, dur: 0.8 }, { midi: target, at: 1.1, dur: 1.2 }])
+      : playNote(target, 1.3),
+    playChoice: (m) => playNote(m, 1),
+    mountChoices: (el, onPick) => pianoChoices(el, { low: LOW, high: HIGH, enabled: new Set(pool), labels: labels() }, onPick),
+    explain(picked, correct) {
+      const semis = target - LOW;
+      const fromC = semis === 0
+        ? 'That is the same note as the reference C.'
+        : `From C that is ${semis} half step${semis > 1 ? 's' : ''} up, a ${intervalBySemis(semis).name.toLowerCase()}.`;
+      if (correct) return `It was <b>${name(target)}</b>. ${fromC}`;
+      const diff = picked - target;
+      return `It was <b>${name(target)}</b>. You picked ${name(picked)}, which is ${Math.abs(diff)} half step${Math.abs(diff) > 1 ? 's' : ''} ${diff > 0 ? 'higher' : 'lower'}. ${fromC}`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'note', newQuestion });
+</script>
+</body>
+</html>

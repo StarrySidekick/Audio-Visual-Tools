@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interval Ear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Interval Ear</h1></header>
+  <p class="lede">Two notes. How far apart are they?</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Mode</span>
+        <select id="mode"><option value="practice">Practice</option><option value="sprint">Sprint (60 s)</option></select></label>
+      <label class="field"><span>Direction</span>
+        <select id="dir"><option value="up">Ascending</option><option value="down">Descending</option><option value="harm">Together (harmonic)</option><option value="mix">Mixed</option></select></label>
+      <div class="field"><span>Intervals</span><div id="types" style="flex:1"></div></div>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>What an interval is</h2>
+    <p>An <strong>interval</strong> is the distance between two notes, counted in half steps (one key to the very next key, black or white). Its name has a <strong>size</strong> (2nd, 3rd, 4th...) counted in letter names, and a <strong>quality</strong> (major, minor, perfect) that pins down the exact number of half steps.</p>
+    <p>Song openings are a classic memory hook: the first two notes of a tune you know by heart give you a reference for each interval. They show up in the feedback when you answer.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { typePicker, persistControl } from '../js/ui.js';
+import { playSequence, playChord } from '../js/audio.js';
+import { INTERVALS, COMMON_ROOTS, rootMidi, spellToken, spelledName, parseNoteName, pick, pickFresh } from '../js/theory.js';
+
+const dir = persistControl(document.getElementById('dir'), 'interval:dir', () => quiz.refresh());
+const types = typePicker(document.getElementById('types'), INTERVALS, {
+  storageKey: 'interval:types',
+  defaults: ['M3', 'P5', 'P8'],
+  presets: {
+    'Starter (M3 P5 P8)': ['M3', 'P5', 'P8'],
+    'Perfect only': ['P4', 'P5', 'P8'],
+    '2nds & 3rds': ['m2', 'M2', 'm3', 'M3'],
+    '6ths & 7ths': ['m6', 'M6', 'm7', 'M7'],
+    'All 12': INTERVALS.map((i) => i.id),
+  },
+}, () => quiz.refresh());
+
+function perform(low, semis, direction) {
+  const high = low + semis;
+  if (direction === 'harm') return playChord([low, high], 1.8);
+  const pair = direction === 'down' ? [high, low] : [low, high];
+  return playSequence(pair, { step: 0.75, dur: 0.9 });
+}
+
+function newQuestion(prev) {
+  const pool = types.get();
+  const iv = pickFresh(pool, prev?.iv, Math.random, (a, b) => a.id === b.id);
+  const root = pick(COMMON_ROOTS);
+  let low = rootMidi(root, 4);
+  if (low > 62) low -= 12; // keep the pair in a comfortable singing range
+  const d = dir() === 'mix' ? pick(['up', 'down', 'harm']) : dir();
+
+  return {
+    iv,
+    answer: iv.id,
+    choices: pool.map((i) => ({ id: i.id, label: i.name, sub: `${i.semis} half step${i.semis > 1 ? 's' : ''}` })),
+    play: () => perform(low, iv.semis, d),
+    playChoice: (id) => perform(low, INTERVALS.find((i) => i.id === id).semis, d),
+    explain() {
+      const r = parseNoteName(root);
+      const top = spelledName(spellToken(r, iv.token));
+      const bottom = spelledName(r);
+      const pair = d === 'down' ? `${top} down to ${bottom}` : d === 'harm' ? `${bottom} and ${top} together` : `${bottom} up to ${top}`;
+      return `<b>${iv.name}</b>, ${iv.semis} half step${iv.semis > 1 ? 's' : ''}: <span class="spell">${pair}</span>.
+        <p>Memory hook (ascending): the start of <i>${iv.song}</i>.</p>`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'interval', newQuestion });
+</script>
+</body>
+</html>

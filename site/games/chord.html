@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord Quality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Chord Quality</h1></header>
+  <p class="lede">A chord plays. Is it major, minor, or something stranger?</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Mode</span>
+        <select id="mode"><option value="practice">Practice</option><option value="sprint">Sprint (60 s)</option></select></label>
+      <label class="field"><span>Playback</span>
+        <select id="style"><option value="both">Arpeggio, then together</option><option value="block">Together only</option><option value="arp">Arpeggio only</option></select></label>
+      <label class="field"><span>Inversions</span><input type="checkbox" id="inv"> <small>Shuffle which note is on the bottom</small></label>
+      <div class="field"><span>Chord types</span><div id="types" style="flex:1"></div></div>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>How chords are built</h2>
+    <p>A <strong>triad</strong> is three notes stacked in 3rds: a root, a 3rd and a 5th. The <strong>quality</strong> (major, minor, diminished, augmented) comes from which kind of 3rds you stack. Add another 3rd on top and you get a <strong>7th chord</strong>.</p>
+    <p>The numbers under each answer are its <strong>formula</strong>: scale degrees measured against the major scale of the root. "b3" means a 3rd lowered by a half step. The 3rd is the main clue for major versus minor, so listen to the middle note of the arpeggio.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { typePicker, persistControl } from '../js/ui.js';
+import { playChord, playSequence, playEvents } from '../js/audio.js';
+import { CHORDS, COMMON_ROOTS, rootMidi, buildFromFormula, invert, spellFormula, spelledName, parseNoteName, pick, pickFresh } from '../js/theory.js';
+
+const style = persistControl(document.getElementById('style'), 'chord:style', () => quiz.refresh());
+const inv = persistControl(document.getElementById('inv'), 'chord:inv', () => quiz.refresh());
+const types = typePicker(document.getElementById('types'), CHORDS, {
+  storageKey: 'chord:types',
+  defaults: ['maj', 'min'],
+  presets: {
+    'Major / minor': ['maj', 'min'],
+    'All triads': ['maj', 'min', 'dim', 'aug'],
+    'Sus chords': ['maj', 'min', 'sus2', 'sus4'],
+    'Sevenths': ['maj7', 'dom7', 'min7', 'm7b5', 'dim7'],
+    'Everything': CHORDS.map((c) => c.id),
+  },
+}, () => quiz.refresh());
+
+function voicing(chord, root, inversion) {
+  let base = rootMidi(root, 3);
+  if (base < 52) base += 12; // keep roots between E3 and D#4 so it is not muddy
+  return invert(buildFromFormula(base, chord.formula), inversion);
+}
+
+function perform(notes) {
+  const s = style();
+  if (s === 'block') return playChord(notes);
+  if (s === 'arp') return playSequence(notes, { step: 0.38, dur: 1.2 });
+  const step = 0.32;
+  const arp = notes.map((midi, i) => ({ midi, at: i * step, dur: 0.5 }));
+  const blockAt = notes.length * step + 0.35;
+  return playEvents([...arp, ...notes.map((midi) => ({ midi, at: blockAt, dur: 1.6, vel: 0.7 }))]);
+}
+
+function newQuestion(prev) {
+  const pool = types.get();
+  const chord = pickFresh(pool, prev?.chord, Math.random, (a, b) => a.id === b.id);
+  const root = pick(COMMON_ROOTS);
+  const inversion = inv() ? Math.floor(Math.random() * chord.formula.length) : 0;
+  const notes = voicing(chord, root, inversion);
+  const rootLabel = spelledName(parseNoteName(root));
+
+  return {
+    chord,
+    answer: chord.id,
+    choices: pool.map((c) => ({ id: c.id, label: c.name, sub: c.formula.join(' ') })),
+    play: () => perform(notes),
+    playChoice: (id) => perform(voicing(CHORDS.find((c) => c.id === id), root, 0)),
+    explain() {
+      const spelled = spellFormula(root, chord.formula);
+      const invText = inversion
+        ? ` Played in ${['', '1st', '2nd', '3rd'][inversion]} inversion, so the lowest note was ${spelled[inversion]}, not the root.`
+        : '';
+      return `<b>${rootLabel}${chord.symbol}</b> (${chord.name.toLowerCase()}) = <span class="spell">${spelled.join(' ')}</span>, formula ${chord.formula.join(' ')}.${invText}<p>${chord.hint}</p>`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'chord', newQuestion });
+</script>
+</body>
+</html>

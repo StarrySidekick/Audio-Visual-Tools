@@ -18,11 +18,13 @@ that need ears and taste.
 | Tool | Status | What it does |
 |---|---|---|
 | [`tools/stringout`](tools/stringout/) | **v1, working** | The "assistant editor": scan a footage drive, log every clip (CSV + JSON), and generate a stringout timeline (FCP7 XML) that imports straight into Premiere |
+| [`site/`](site/) | **prototype** | "Ear & Eye": music theory and sight-reading practice games (note, interval, chord, scale/mode, staff reading), published with GitHub Pages |
 
 ## Docs
 
 - [`docs/workflow-problems.md`](docs/workflow-problems.md) — the actual problems this repo exists to solve, in plain language
 - [`docs/existing-tools.md`](docs/existing-tools.md) — what already exists (free/cheap) so we don't rebuild solved problems
+- [`docs/music-games-ideas.md`](docs/music-games-ideas.md) — brainstorm of weirder, more game-like practice ideas
 - [`docs/roadmap.md`](docs/roadmap.md) — what to build next, in what order, and why
 
 ## Principles

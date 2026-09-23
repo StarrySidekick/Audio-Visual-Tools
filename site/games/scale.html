@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scale &amp; Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Scale &amp; Mode</h1></header>
+  <p class="lede">A scale runs up (and maybe back down). Name its flavor.</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Mode</span>
+        <select id="mode"><option value="practice">Practice</option><option value="sprint">Sprint (60 s)</option></select></label>
+      <label class="field"><span>Root</span>
+        <select id="root"><option value="c">Always C (easier to compare)</option><option value="random">Random</option></select></label>
+      <label class="field"><span>Direction</span>
+        <select id="dir"><option value="up">Up</option><option value="updown">Up and back down</option></select></label>
+      <label class="field"><span>Speed</span>
+        <select id="speed"><option value="0.42">Relaxed</option><option value="0.3">Medium</option><option value="0.2">Fast</option></select></label>
+      <div class="field"><span>Scales</span><div id="types" style="flex:1"></div></div>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>Modes in one idea</h2>
+    <p>A <strong>mode</strong> is a scale defined by its pattern of whole steps (W) and half steps (H). The seven classic modes all use the same pattern as the major scale, just starting from a different note. C major played from D to D is D Dorian.</p>
+    <p>The fastest way to tell them apart is to compare each one to plain major or natural minor and listen for the one note that differs. That is what the hints after each answer point at. "Always C" keeps the root fixed so only that note changes between questions.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { typePicker, persistControl } from '../js/ui.js';
+import { playSequence } from '../js/audio.js';
+import { SCALES, COMMON_ROOTS, rootMidi, buildFromFormula, spellFormula, spelledName, parseNoteName, stepPattern, pick, pickFresh } from '../js/theory.js';
+
+const rootSel = persistControl(document.getElementById('root'), 'scale:root', () => quiz.refresh());
+const dir = persistControl(document.getElementById('dir'), 'scale:dir', () => quiz.refresh());
+const speed = persistControl(document.getElementById('speed'), 'scale:speed', () => quiz.refresh());
+const modes7 = ['major', 'dorian', 'phrygian', 'lydian', 'mixolydian', 'minor', 'locrian'];
+const types = typePicker(document.getElementById('types'), SCALES, {
+  storageKey: 'scale:types',
+  defaults: ['major', 'minor'],
+  presets: {
+    'Major / minor': ['major', 'minor'],
+    'Minor family': ['minor', 'dorian', 'phrygian', 'harmonic', 'melodic'],
+    'The 7 modes': modes7,
+    'Pentatonic & blues': ['majpent', 'minpent', 'blues'],
+    'Everything': SCALES.map((s) => s.id),
+  },
+}, () => quiz.refresh());
+
+function notesFor(scale, root) {
+  let base = rootMidi(root, 4);
+  if (base > 64) base -= 12; // roots between F3 and E4
+  const up = buildFromFormula(base, scale.formula, { closeOctave: true });
+  return dir() === 'updown' ? [...up, ...up.slice(0, -1).reverse()] : up;
+}
+
+const perform = (notes) => {
+  const step = parseFloat(speed());
+  return playSequence(notes, { step, dur: step * 1.15 });
+};
+
+function newQuestion(prev) {
+  const pool = types.get();
+  const scale = pickFresh(pool, prev?.scale, Math.random, (a, b) => a.id === b.id);
+  const root = rootSel() === 'c' ? 'C' : pick(COMMON_ROOTS);
+  const notes = notesFor(scale, root);
+
+  return {
+    scale,
+    answer: scale.id,
+    choices: pool.map((s) => ({ id: s.id, label: s.name })),
+    play: () => perform(notes),
+    playChoice: (id) => perform(notesFor(SCALES.find((s) => s.id === id), root)),
+    explain() {
+      const label = spelledName(parseNoteName(root));
+      return `<b>${label} ${scale.name}</b>: <span class="spell">${spellFormula(root, scale.formula).join(' ')}</span>
+        <p>Formula ${scale.formula.join(' ')} · steps ${stepPattern(scale.formula)}</p><p>${scale.hint}</p>`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'scale', newQuestion });
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Staff Reader</h1></header>
+  <p class="lede">A note sits on the staff. Name it, or find the exact key on the piano.</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Mode</span>
+        <select id="mode"><option value="practice">Practice</option><option value="sprint">Sprint (60 s)</option></select></label>
+      <label class="field"><span>Clef</span>
+        <select id="clef"><option value="treble">Treble</option><option value="bass">Bass</option><option value="both">Both (random)</option></select></label>
+      <label class="field"><span>Range</span>
+        <select id="range"><option value="staff">On the staff</option><option value="ledger">Add ledger lines</option></select></label>
+      <label class="field"><span>Answer with</span>
+        <select id="answer"><option value="letters">Letter names</option><option value="piano">Piano keys (exact octave)</option></select></label>
+      <label class="field"><span>Sound</span><input type="checkbox" id="sound" checked> <small>Play the note after you answer</small></label>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play" hidden>Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>Reading the staff</h2>
+    <p>The five lines and four spaces each stand for one letter name. The <strong>clef</strong> tells you which: the treble clef curls around the G line (second from the bottom), and the bass clef's two dots surround the F line (second from the top). <strong>Ledger lines</strong> are short extra lines for notes above or below the staff. Middle C sits on one ledger line below treble or one above bass.</p>
+    <p>Mnemonics, bottom to top. Treble lines: <i>Every Good Boy Does Fine</i>. Treble spaces: <i>F A C E</i>. Bass lines: <i>Good Boys Do Fine Always</i>. Bass spaces: <i>All Cows Eat Grass</i>.</p>
+    <p>Keyboard shortcut: press the letter key to answer in letter mode. Sprint mode is where this one gets fun.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { pianoChoices, persistControl } from '../js/ui.js';
+import { renderStaff } from '../js/staff.js';
+import { playNote } from '../js/audio.js';
+import { LETTERS, CLEFS, staffNotePool, staffPosition, spelledToMidi, spelledName, midiToName, pick, pickFresh } from '../js/theory.js';
+
+const clefSel = persistControl(document.getElementById('clef'), 'staff:clef', () => quiz.refresh());
+const range = persistControl(document.getElementById('range'), 'staff:range', () => quiz.refresh());
+const answerMode = persistControl(document.getElementById('answer'), 'staff:answer', () => quiz.refresh());
+const sound = persistControl(document.getElementById('sound'), 'staff:sound', () => {});
+
+const MNEMONIC = {
+  treble: { lines: 'Every Good Boy Does Fine', spaces: 'F A C E' },
+  bass: { lines: 'Good Boys Do Fine Always', spaces: 'All Cows Eat Grass' },
+};
+const ORD = ['1st', '2nd', '3rd', '4th', '5th'];
+
+function describe(pos, clef) {
+  const m = MNEMONIC[clef];
+  if (pos >= 0 && pos <= 8) {
+    return pos % 2 === 0
+      ? `on the ${ORD[pos / 2]} line from the bottom (<i>${m.lines}</i>)`
+      : `in the ${ORD[(pos - 1) / 2]} space from the bottom (<i>${m.spaces}</i>)`;
+  }
+  const below = pos < 0;
+  const d = below ? -pos : pos - 8; // steps outside the staff
+  if (d === 1) return `just ${below ? 'below' : 'above'} the staff`;
+  const n = Math.floor(d / 2);
+  return d % 2 === 0
+    ? `on the ${ORD[n - 1]} ledger line ${below ? 'below' : 'above'}`
+    : `just ${below ? 'below' : 'above'} the ${ORD[n - 1]} ledger line ${below ? 'below' : 'above'}`;
+}
+
+const sameNote = (a, b) => a.letter === b.letter && a.octave === b.octave;
+
+function newQuestion(prev) {
+  const clef = clefSel() === 'both' ? pick(['treble', 'bass']) : clefSel();
+  const pool = staffNotePool(clef, { ledger: range() === 'ledger' });
+  const note = pickFresh(pool, prev?.note, Math.random, sameNote);
+  const midi = spelledToMidi(note);
+  const piano = answerMode() === 'piano';
+  const hotkeys = {};
+  if (!piano) for (const L of LETTERS) hotkeys[L.toLowerCase()] = L;
+
+  const q = {
+    note,
+    answer: piano ? midi : note.letter,
+    hotkeys,
+    render: (stage) => renderStaff(stage, { clef, note, label: `${CLEFS[clef].name} clef, one note` }),
+    onReveal: () => { if (sound()) playNote(midi, 1.1); },
+    playChoice: piano ? (m) => playNote(m, 0.9) : undefined,
+    explain(picked, correct) {
+      const where = `${describe(staffPosition(note, clef), clef)} in ${clef} clef`;
+      const full = spelledName(note, true);
+      if (correct) return `<b>${full}</b>, ${where}.`;
+      if (piano && midiToName(picked, { octave: false }) === note.letter) {
+        return `Right letter, wrong octave. This is <b>${full}</b>; you pressed ${midiToName(picked)}. It sits ${where}.`;
+      }
+      return `This is <b>${full}</b>, ${where}.`;
+    },
+  };
+  if (piano) {
+    const midis = pool.map(spelledToMidi);
+    q.mountChoices = (el, onPick) => pianoChoices(el, { low: Math.min(...midis), high: Math.max(...midis), labels: false }, onPick);
+  } else {
+    q.choices = LETTERS.map((L) => ({ id: L, label: L, hotkey: L }));
+  }
+  return q;
+}
+
+const quiz = createQuiz({ gameId: 'staff', newQuestion });
+</script>
+</body>
+</html>

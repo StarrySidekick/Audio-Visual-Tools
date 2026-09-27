@@ -9,6 +9,8 @@
 //     playChoice(id),              // optional: hear any option after reveal
 //     explain(pickedId, correct),  // HTML shown after answering
 //     hotkeys: { key: id },        // optional extra keyboard shortcuts
+//     isCorrect(id),               // optional: when several answers are right
+//     autoAdvance: false,          // optional: wait for Next even when right
 //   }
 //
 // Two modes: Practice (no clock, tracks best streak) and Sprint (60 seconds,
@@ -130,7 +132,7 @@ export function createQuiz({ gameId, newQuestion }) {
       return;
     }
     answered = true;
-    const correct = String(id) === String(q.answer);
+    const correct = q.isCorrect ? q.isCorrect(id) : String(id) === String(q.answer);
     s.total++;
     if (correct) {
       s.right++;
@@ -149,7 +151,7 @@ export function createQuiz({ gameId, newQuestion }) {
     renderScore();
     q.onReveal?.(id, correct);
     if (sprint.on) advanceTimer = setTimeout(next, correct ? 350 : 1100);
-    else if (correct) advanceTimer = setTimeout(next, 1600);
+    else if (correct && q.autoAdvance !== false) advanceTimer = setTimeout(next, 1600);
   }
 
   playBtn.addEventListener('click', replay);

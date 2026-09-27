@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progression Detective</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Progression Detective</h1></header>
+  <p class="lede">Four chords play. The first is always I (home). Name the other three.</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Level</span>
+        <select id="level">
+          <option value="1">1 · I, IV, V</option>
+          <option value="2">2 · add ii and vi (most pop)</option>
+          <option value="3">3 · all seven diatonic chords</option>
+          <option value="4">4 · add borrowed chords (♭VII, iv, ♭VI, ♭III)</option>
+        </select></label>
+      <label class="field"><span>Key</span>
+        <select id="key"><option value="C">Always C major</option><option value="random">Random key</option></select></label>
+      <label class="field"><span>Speed</span>
+        <select id="speed"><option value="1.4">Relaxed</option><option value="1.0">Medium</option><option value="0.7">Fast</option></select></label>
+      <label class="field"><span>Chord names</span><input type="checkbox" id="names" checked> <small>Show the chord letter names under each numeral</small></label>
+      <label class="field"><span>Hear guess</span><input type="checkbox" id="guess"> <small>Let me play my answer before checking (easier)</small></label>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Replay</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>Roman numerals and function</h2>
+    <p>Songwriters name chords by their <strong>position in the key</strong>, so one progression works in every key. In C major, C is <strong>I</strong>, F is <strong>IV</strong>, G is <strong>V</strong> and A minor is <strong>vi</strong>. Uppercase is a major chord, lowercase is minor, and ° is diminished.</p>
+    <p>Each chord has a <strong>function</strong>. Tonic chords (I, vi, iii) feel like home. Subdominant chords (IV, ii) move away. Dominant chords (V, vii°) build tension that pulls back to I. Most progressions cycle tonic, subdominant, dominant, tonic.</p>
+    <p>Listening tips: follow the <strong>bass note</strong>, it plays each chord's root. V sounds like it is leaning forward; IV sounds like it is opening up. Minor chords (ii, iii, vi) sound softer or sadder than their neighbors. Borrowed chords (level 4) come from the minor key, so they sound suddenly darker or more epic.</p>
+    <p>Keys: 1–9 pick a numeral, Backspace undoes, Space replays.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { slotChoices, persistControl } from '../js/ui.js';
+import { playEvents } from '../js/audio.js';
+import { pick } from '../js/theory.js';
+import { NUMERALS, MAJOR_KEYS, FAMOUS, FUNCTION_TEXT, chordInKey, keyLabel, voiceProgression, generateProgression } from '../js/harmony.js';
+
+const level = persistControl(document.getElementById('level'), 'prog:level', () => quiz.refresh());
+const keySel = persistControl(document.getElementById('key'), 'prog:key', () => quiz.refresh());
+const speed = persistControl(document.getElementById('speed'), 'prog:speed', () => {});
+const names = persistControl(document.getElementById('names'), 'prog:names', () => quiz.refresh());
+const guess = persistControl(document.getElementById('guess'), 'prog:guess', () => quiz.refresh());
+
+const POOLS = {
+  1: ['I', 'IV', 'V'],
+  2: ['I', 'ii', 'IV', 'V', 'vi'],
+  3: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'],
+  4: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°', '♭III', 'iv', '♭VI', '♭VII'],
+};
+
+function perform(key, ids) {
+  const dur = parseFloat(speed());
+  const voicings = voiceProgression(ids.map((id) => chordInKey(key, id)));
+  const events = [];
+  voicings.forEach((v, i) => v.forEach((midi) => events.push({ midi, at: i * dur, dur: dur * 0.95, vel: 0.65 })));
+  return playEvents(events);
+}
+
+function newQuestion(prev) {
+  const pool = POOLS[level()];
+  const key = keySel() === 'C' ? 'C' : pick(MAJOR_KEYS);
+  let answer;
+  do answer = generateProgression(pool, 4); while (prev && answer.join('-') === prev.answer);
+  let widget;
+
+  const options = pool.map((id) => ({
+    id, label: id, sub: names() ? chordInKey(key, id).name : '',
+  }));
+
+  return {
+    answer: answer.join('-'),
+    autoAdvance: false,
+    render(stage) {
+      stage.innerHTML = `<div style="text-align:center"><div class="listen" aria-hidden="true" style="justify-content:center;margin:0 auto"><span></span><span></span><span></span><span></span><span></span></div><p class="hint">Key: <b>${keyLabel(key)}</b>. Chord 1 is I.</p></div>`;
+    },
+    play: () => perform(key, answer),
+    mountChoices(el, onPick) {
+      widget = slotChoices(el, {
+        slots: 4,
+        fixed: { 0: 'I' },
+        options,
+        preview: guess() ? (vals) => perform(key, vals.map((v) => v || 'I')) : null,
+        previewLabel: 'Hear my guess',
+      }, (vals) => onPick(vals.join('-')));
+      return widget;
+    },
+    onReveal(picked) {
+      const mine = picked.split('-');
+      widget.reveal(
+        answer.map((id, i) => ({ ok: mine[i] === id, note: mine[i] === id ? '' : `was ${id}` })),
+        (i) => perform(key, [answer[i]]),
+      );
+      document.getElementById('hear-mine')?.addEventListener('click', () => perform(key, mine));
+      document.getElementById('hear-real')?.addEventListener('click', () => perform(key, answer));
+    },
+    explain(picked, correct) {
+      const mine = picked.split('-');
+      const rows = answer.map((id) => {
+        const c = chordInKey(key, id);
+        return `<tr><td>${id}</td><td><b>${c.name}</b> <span class="spell">(${c.notes.join(' ')})</span></td><td>${FUNCTION_TEXT[c.fn]}</td></tr>`;
+      }).join('');
+      const famous = FAMOUS[answer.join('-')];
+      const wrongs = answer.filter((id, i) => mine[i] !== id).length;
+      return `${correct ? 'All four.' : `${wrongs} of 3 missed.`} In ${keyLabel(key)}:
+        <table class="fb-table">${rows}</table>
+        ${famous ? `<p>This is ${famous}.</p>` : ''}
+        <p class="fn-flow">Flow: ${answer.map((id) => NUMERALS.find((n) => n.id === id).fn).join(' → ')}</p>
+        <div class="slot-actions"><button type="button" class="btn" id="hear-real">Hear the answer</button>${correct ? '' : '<button type="button" class="btn" id="hear-mine">Hear my answer</button>'}</div>
+        <p class="hint">Click any slot to hear that chord alone.</p>`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'progression', newQuestion });
+</script>
+</body>
+</html>

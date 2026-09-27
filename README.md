@@ -18,7 +18,7 @@ that need ears and taste.
 | Tool | Status | What it does |
 |---|---|---|
 | [`tools/stringout`](tools/stringout/) | **v1, working** | The "assistant editor": scan a footage drive, log every clip (CSV + JSON), and generate a stringout timeline (FCP7 XML) that imports straight into Premiere |
-| [`site/`](site/) | **prototype** | "Ear & Eye": music theory and sight-reading practice games (note, interval, chord, scale/mode, staff reading), published with GitHub Pages |
+| [`site/`](site/) | **prototype** | "Ear & Eye": music theory and sight-reading practice games (note, interval, chord, scale/mode, staff reading, progressions, harmonizing, chord roulette), published with GitHub Pages |
 
 ## Docs
 

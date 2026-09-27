@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chord Roulette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Chord Roulette</h1></header>
+  <p class="lede">Roll random chords and hear them back to back. Lock the ones you like, re-roll the rest, export to your DAW.</p>
+
+  <details class="settings" open>
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Chords</span>
+        <select id="count"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label class="field"><span>Source</span>
+        <select id="source"><option value="key">Stay in one key (diatonic)</option><option value="borrow">In a key, plus borrowed chords</option><option value="any">Anything goes (any root, any type)</option></select></label>
+      <label class="field"><span>Chord length</span>
+        <select id="len"><option value="2.4">Long</option><option value="1.6" selected>Medium</option><option value="1.0">Short</option></select></label>
+      <label class="field"><span>Voicing</span>
+        <select id="voicing"><option value="smooth">Smooth (voice-led)</option><option value="root">Root position (blocky)</option></select></label>
+      <label class="field"><span>Loop</span><input type="checkbox" id="loop"> <small>Keep playing until stopped</small></label>
+      <div class="field" id="types-field"><span>Chord types</span><div id="types" style="flex:1"></div></div>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="controls">
+      <button type="button" class="btn btn-primary btn-big" id="roll">Roll</button>
+      <button type="button" class="btn" id="playall">Play</button>
+      <button type="button" class="btn" id="midi">Export MIDI</button>
+    </div>
+    <p class="hint" id="keyline" style="text-align:center"></p>
+    <div class="roll-row" id="cards"></div>
+    <p class="hint" style="text-align:center">Click a card to hear it alone. R rolls, Space plays or stops, 1–6 play one chord.</p>
+  </section>
+
+  <section class="explainer">
+    <h2>Why this is useful</h2>
+    <p>Random chords break habits. Most people write the same few progressions because their hands go to the same shapes. Rolling forces you to hear combinations you would not choose, and locking lets you keep a surprising pair and search for what comes next.</p>
+    <p><strong>Stay in one key</strong> only uses the seven chords built from that key's scale, so everything sounds related. <strong>Borrowed chords</strong> add chords from the parallel minor (♭VII, iv, ♭VI, ♭III), the usual source of an unexpected emotional turn. <strong>Anything goes</strong> picks any root and any chord type you allow; expect some beautiful accidents and some real clunkers.</p>
+    <p><strong>Smooth voicing</strong> moves each note of a chord to the nearest note of the next one, the way a pianist would. <strong>Root position</strong> stacks every chord from its root, which sounds blockier but makes each chord's identity obvious. Export MIDI gives you one bar per chord at 90 BPM, ready to drag into Ableton.</p>
+  </section>
+</div>
+
+<script type="module">
+import { persistControl, typePicker } from '../js/ui.js';
+import { playEvents, stop, unlock } from '../js/audio.js';
+import { CHORDS, COMMON_ROOTS, pick, buildFromFormula, rootMidi } from '../js/theory.js';
+import { MAJOR_KEYS, DIATONIC, chordInKey, chordFromRoot, keyLabel, voiceProgression, bassNote } from '../js/harmony.js';
+import { chordsToMidi, downloadMidi } from '../js/midi.js';
+
+const $ = (id) => document.getElementById(id);
+const count = persistControl($('count'), 'roul:count', () => { resize(); render(); });
+const source = persistControl($('source'), 'roul:source', () => { showTypes(); rollAll(); });
+const len = persistControl($('len'), 'roul:len', () => {});
+const voicing = persistControl($('voicing'), 'roul:voicing', () => {});
+const loop = persistControl($('loop'), 'roul:loop', () => { if (!loop()) clearTimeout(loopTimer); });
+const types = typePicker($('types'), CHORDS, {
+  storageKey: 'roul:types',
+  defaults: ['maj', 'min'],
+  min: 1,
+  presets: { 'Triads': ['maj', 'min', 'dim', 'aug'], 'Major/minor': ['maj', 'min'], 'Sevenths': ['maj7', 'dom7', 'min7', 'm7b5'], 'Everything': CHORDS.map((c) => c.id) },
+}, () => {});
+
+let key = 'C';
+let slots = []; // [{ chord, locked }]
+let highlightTimers = [];
+let loopTimer = null;
+let playing = false;
+
+function showTypes() { $('types-field').hidden = source() !== 'any'; }
+
+function randomChord() {
+  const s = source();
+  if (s === 'any') return chordFromRoot(pick(COMMON_ROOTS), pick(types.get()).id);
+  const pool = s === 'borrow' ? [...DIATONIC, '♭VII', 'iv', '♭VI', '♭III'] : DIATONIC;
+  return chordInKey(key, pick(pool));
+}
+
+function rollAll() {
+  // A new key only when nothing is locked, so locked chords keep their numerals.
+  if (source() !== 'any' && !slots.some((s) => s.locked)) key = pick(MAJOR_KEYS);
+  resize();
+  slots.forEach((s, i) => {
+    if (s.locked) return;
+    let c;
+    do c = randomChord(); while (i > 0 && c.name === slots[i - 1].chord?.name && Math.random() < 0.9);
+    s.chord = c;
+  });
+  render();
+  playAll();
+}
+
+function resize() {
+  const n = parseInt(count(), 10);
+  while (slots.length < n) slots.push({ chord: randomChord(), locked: false });
+  slots.length = n;
+}
+
+function render() {
+  $('keyline').innerHTML = source() === 'any' ? 'No key: any root, any type.' : `Key: <b>${keyLabel(key)}</b>`;
+  const cards = $('cards');
+  cards.innerHTML = '';
+  slots.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'chord-card' + (s.locked ? ' is-locked' : '');
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
+    card.innerHTML = `<button type="button" class="lock ${s.locked ? 'on' : ''}">${s.locked ? 'Locked' : 'Lock'}</button>
+      <span class="chord-name">${s.chord.name}</span>
+      <span class="chord-notes">${s.chord.notes.join(' ')}</span>
+      <span class="chord-numeral">${source() === 'any' ? '' : s.chord.numeral ?? ''}</span>`;
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.lock')) { s.locked = !s.locked; render(); return; }
+      playOne(i);
+    });
+    cards.appendChild(card);
+  });
+}
+
+function voicings() {
+  const chords = slots.map((s) => s.chord);
+  if (voicing() === 'smooth') return voiceProgression(chords);
+  return chords.map((c) => {
+    const root = 48 + c.pcs[0];
+    const def = CHORDS.find((d) => d.id === c.quality);
+    return [bassNote(c.pcs[0]), ...buildFromFormula(root < 53 ? root + 12 : root, def.formula)];
+  });
+}
+
+function clearHighlights() {
+  highlightTimers.forEach(clearTimeout);
+  highlightTimers = [];
+  document.querySelectorAll('.chord-card.is-playing').forEach((el) => el.classList.remove('is-playing'));
+}
+
+function flash(i, at, dur) {
+  highlightTimers.push(setTimeout(() => $('cards').children[i]?.classList.add('is-playing'), at * 1000));
+  highlightTimers.push(setTimeout(() => $('cards').children[i]?.classList.remove('is-playing'), (at + dur) * 1000));
+}
+
+function playAll() {
+  unlock();
+  clearHighlights();
+  clearTimeout(loopTimer);
+  const dur = parseFloat(len());
+  const events = [];
+  voicings().forEach((v, i) => {
+    v.forEach((midi) => events.push({ midi, at: i * dur, dur: dur * 0.95, vel: 0.65 }));
+    flash(i, i * dur + 0.05, dur * 0.95);
+  });
+  const total = playEvents(events);
+  playing = true;
+  $('playall').textContent = 'Stop';
+  loopTimer = setTimeout(() => {
+    if (loop()) playAll();
+    else { playing = false; $('playall').textContent = 'Play'; }
+  }, (total + 0.1) * 1000);
+}
+
+function stopAll() {
+  stop();
+  clearHighlights();
+  clearTimeout(loopTimer);
+  playing = false;
+  $('playall').textContent = 'Play';
+}
+
+function playOne(i) {
+  unlock();
+  stopAll();
+  const v = voicings()[i];
+  const dur = parseFloat(len());
+  playEvents(v.map((midi) => ({ midi, at: 0, dur, vel: 0.65 })));
+  flash(i, 0.05, dur);
+}
+
+function exportMidi() {
+  const clean = (n) => n.replace(/♯/g, '#').replace(/♭/g, 'b').replace(/°/g, 'dim').replace(/ø/g, 'hdim').replace(/\+/g, 'aug');
+  const name = slots.map((s) => clean(s.chord.name)).join('-');
+  downloadMidi(chordsToMidi(voicings(), { beatsPerChord: 4, bpm: 90 }), `${name}.mid`);
+}
+
+$('roll').addEventListener('click', rollAll);
+$('playall').addEventListener('click', () => (playing ? stopAll() : playAll()));
+$('midi').addEventListener('click', exportMidi);
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'r' || e.key === 'R') { e.preventDefault(); rollAll(); }
+  else if (e.key === ' ') { e.preventDefault(); playing ? stopAll() : playAll(); }
+  else {
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= slots.length) playOne(n - 1);
+  }
+});
+
+showTypes();
+key = pick(MAJOR_KEYS);
+resize();
+render();
+</script>
+</body>
+</html>

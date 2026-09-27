@@ -136,3 +136,120 @@ export function load(key, fallback) {
 export function save(key, value) {
   try { localStorage.setItem('mg:' + key, JSON.stringify(value)); } catch { /* ignore */ }
 }
+
+// Fill-in-the-slots answer: several slots (one per chord or bar), a row of
+// option buttons, and Undo / Check. Used for multi-part answers like a
+// four-chord progression. Calls onSubmit(values) once every slot is filled.
+//   slots: number; fixed: { index: optionId } prefilled and locked
+//   options: [{ id, label, sub }]; preview(values) optional "hear it" button
+//   columns: CSS grid-template-columns for the slot row (to line up with a staff)
+let slotKeyHandler = null;
+
+export function slotChoices(container, { slots, fixed = {}, options, preview, columns, previewLabel = 'Hear my answer' }, onSubmit) {
+  container.className = 'choices choices-slots';
+  container.innerHTML = '';
+  const values = Array.from({ length: slots }, (_, i) => fixed[i] ?? null);
+  const label = (id) => options.find((o) => o.id === id);
+  let active = values.indexOf(null);
+  let revealed = false;
+  let results = null;
+  let onSlotClick = null;
+
+  const row = document.createElement('div');
+  row.className = 'slot-row';
+  row.style.gridTemplateColumns = columns || `repeat(${slots}, 1fr)`;
+  if (columns) row.appendChild(document.createElement('div')); // spacer under clef/key signature
+  const slotEls = values.map((_, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'slot';
+    b.addEventListener('click', () => {
+      if (revealed) return onSlotClick?.(i);
+      if (i in fixed) return;
+      active = i;
+      paint();
+    });
+    row.appendChild(b);
+    return b;
+  });
+
+  const opts = document.createElement('div');
+  opts.className = 'choices-buttons numerals';
+  options.forEach((o, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'choice';
+    b.innerHTML = `<span class="choice-key">${i < 9 ? i + 1 : ''}</span><span class="choice-label">${o.label}</span>${o.sub ? `<span class="choice-sub">${o.sub}</span>` : ''}`;
+    b.addEventListener('click', () => choose(o.id));
+    opts.appendChild(b);
+  });
+
+  const actions = document.createElement('div');
+  actions.className = 'slot-actions';
+  const mk = (text, cls, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn ' + cls;
+    b.textContent = text;
+    b.addEventListener('click', fn);
+    actions.appendChild(b);
+    return b;
+  };
+  const undoBtn = mk('Undo', '', undo);
+  const previewBtn = preview ? mk(previewLabel, '', () => preview([...values])) : null;
+  const checkBtn = mk('Check', 'btn-primary', () => { if (values.every(Boolean)) onSubmit([...values]); });
+
+  container.append(row, opts, actions);
+
+  function choose(id) {
+    if (revealed || active < 0) return;
+    values[active] = id;
+    const nextEmpty = values.findIndex((v, i) => v === null && i > active);
+    active = nextEmpty >= 0 ? nextEmpty : values.indexOf(null);
+    paint();
+  }
+
+  function undo() {
+    if (revealed) return;
+    for (let i = slots - 1; i >= 0; i--) {
+      if (values[i] !== null && !(i in fixed)) { values[i] = null; active = i; break; }
+    }
+    paint();
+  }
+
+  function paint() {
+    slotEls.forEach((el, i) => {
+      const v = values[i];
+      const o = v && label(v);
+      const r = results && !(i in fixed) ? results[i] : null;
+      el.className = 'slot' + (i in fixed ? ' is-fixed' : v ? ' is-filled' : '') + (!revealed && i === active ? ' is-active' : '')
+        + (r ? (r.ok ? ' is-correct' : ' is-wrong') : '');
+      el.innerHTML = (o ? `<span class="slot-num">${o.label}</span>${o.sub ? `<span class="slot-sub">${o.sub}</span>` : ''}` : `<span class="slot-sub">${i + 1}</span>`)
+        + (r?.note ? `<span class="slot-fix">${r.note}</span>` : '');
+    });
+    checkBtn.disabled = revealed || !values.every(Boolean);
+    undoBtn.disabled = revealed;
+  }
+
+  if (slotKeyHandler) document.removeEventListener('keydown', slotKeyHandler);
+  slotKeyHandler = (e) => {
+    if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey) return;
+    if (e.key === 'Backspace') { e.preventDefault(); undo(); return; }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 9 && options[n - 1]) choose(options[n - 1].id);
+  };
+  document.addEventListener('keydown', slotKeyHandler);
+  paint();
+
+  return {
+    mark() {},
+    clear() {},
+    // results: [{ ok, note }] per slot. After this, clicking a slot calls onClick(i).
+    reveal(res, onClick) {
+      revealed = true;
+      results = res;
+      onSlotClick = onClick;
+      paint();
+    },
+  };
+}

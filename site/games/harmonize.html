@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harmonize It</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Music&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar"><a class="back" href="../index.html">← All games</a><h1>Harmonize It</h1></header>
+  <p class="lede">A four-bar melody. Pick a chord for each bar. Try your chords by ear, then check.</p>
+
+  <details class="settings">
+    <summary>Settings</summary>
+    <div class="settings-body">
+      <label class="field"><span>Key</span>
+        <select id="key"><option value="C">Always C major</option><option value="random">Random key (up to 3 ♯ or ♭)</option></select></label>
+      <label class="field"><span>Tempo</span>
+        <select id="tempo"><option value="80">Slow</option><option value="100">Medium</option><option value="126">Brisk</option></select></label>
+      <label class="field"><span>Chord names</span><input type="checkbox" id="names" checked> <small>Show letter names under each numeral</small></label>
+    </div>
+  </details>
+
+  <section class="board">
+    <div class="scorebar" id="score"></div>
+    <div class="stage" id="stage"></div>
+    <div class="controls">
+      <button type="button" class="btn" id="play">Play melody</button>
+      <button type="button" class="btn btn-primary" id="next">Next</button>
+    </div>
+    <div id="choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+  </section>
+
+  <section class="explainer">
+    <h2>The one rule this game checks</h2>
+    <p>The notes on the <strong>strong beats</strong> (beats 1 and 3 of each bar, or the held note in the last bar) should be <strong>chord tones</strong>: notes that belong to the chord underneath. Notes on the weak beats can be passing notes that step between chord tones. That is the basic logic of harmonizing a melody, and it is why several chords can be "right" for the same bar.</p>
+    <p>How to work it out: read the note on beat 1 and the note on beat 3, then find the chord that contains both. For example, C and E fit C major (C E G) and A minor (A C E). Then use your ear: "Hear with my chords" plays your choices under the melody. Ending on <strong>I</strong> gives the strongest sense of arrival.</p>
+    <p>The key signature at the start of the staff tells you which notes are sharp or flat for the whole piece. Keys: 1–6 pick a numeral, Backspace undoes, Space plays the melody.</p>
+  </section>
+</div>
+
+<script type="module">
+import { createQuiz } from '../js/quiz.js';
+import { slotChoices, persistControl } from '../js/ui.js';
+import { renderMelody } from '../js/staff.js';
+import { playEvents } from '../js/audio.js';
+import { pick, spelledName } from '../js/theory.js';
+import { MAJOR_KEYS, chordInKey, keyLabel, keySignature, spellInKey, voiceProgression, generateMelody, fittingChords, strongBeats } from '../js/harmony.js';
+
+const keySel = persistControl(document.getElementById('key'), 'harm:key', () => quiz.refresh());
+const tempo = persistControl(document.getElementById('tempo'), 'harm:tempo', () => {});
+const names = persistControl(document.getElementById('names'), 'harm:names', () => quiz.refresh());
+
+const POOL = ['I', 'ii', 'iii', 'IV', 'V', 'vi'];
+
+// Melody plus (optional) chords, bar by bar. chordIds may contain nulls.
+function perform(key, bars, chordIds = [], onlyBar = null) {
+  const beat = 60 / parseFloat(tempo());
+  const barLen = beat * 4;
+  const events = [];
+  const which = onlyBar === null ? bars.map((_, i) => i) : [onlyBar];
+  // Chords sit below the melody so the tune stays on top.
+  const voiced = voiceProgression(chordIds.map((id) => chordInKey(key, id || 'I')), { low: 50, high: 66, center: 58 });
+  which.forEach((b, k) => {
+    const t0 = k * barLen;
+    const bar = bars[b];
+    const step = barLen / bar.length;
+    bar.forEach((midi, i) => events.push({ midi, at: t0 + i * step, dur: step * 0.9, vel: 0.9 }));
+    if (chordIds[b]) voiced[b].forEach((midi) => events.push({ midi, at: t0, dur: barLen * 0.95, vel: 0.45 }));
+  });
+  return playEvents(events);
+}
+
+function newQuestion() {
+  const key = keySel() === 'C' ? 'C' : pick(MAJOR_KEYS);
+  const { progression, bars } = generateMelody(key);
+  const fits = bars.map((bar) => fittingChords(key, bar, POOL));
+  const spell = (m) => spelledName(spellInKey(m, key));
+  let widget, layout;
+
+  return {
+    answer: progression.join('|'),
+    autoAdvance: false,
+    isCorrect: (id) => id.split('|').every((c, i) => fits[i].includes(c)),
+    render(stage) {
+      stage.innerHTML = `<div style="width:100%;text-align:center"><div id="melody"></div><p class="hint">Key: <b>${keyLabel(key)}</b></p></div>`;
+      layout = renderMelody(stage.querySelector('#melody'), {
+        bars: bars.map((bar) => bar.map((m) => spellInKey(m, key))),
+        keySig: keySignature(key),
+        label: `Four-bar melody in ${keyLabel(key)}`,
+      });
+    },
+    play: () => perform(key, bars),
+    mountChoices(el, onPick) {
+      widget = slotChoices(el, {
+        slots: 4,
+        options: POOL.map((id) => ({ id, label: id, sub: names() ? chordInKey(key, id).name : '' })),
+        columns: `${(layout.prefix * 100).toFixed(1)}% repeat(4, 1fr)`,
+        preview: (vals) => perform(key, bars, vals),
+        previewLabel: 'Hear with my chords',
+      }, (vals) => onPick(vals.join('|')));
+      return widget;
+    },
+    onReveal(picked) {
+      const mine = picked.split('|');
+      widget.reveal(
+        mine.map((c, i) => ({ ok: fits[i].includes(c), note: fits[i].includes(c) ? '' : `try ${fits[i].join('/')}` })),
+        (i) => perform(key, bars, mine, i),
+      );
+      document.getElementById('hear-mine')?.addEventListener('click', () => perform(key, bars, mine));
+      document.getElementById('hear-orig')?.addEventListener('click', () => perform(key, bars, progression));
+    },
+    explain(picked, correct) {
+      const mine = picked.split('|');
+      const rows = bars.map((bar, i) => {
+        const strong = strongBeats(bar).map(spell).join(' and ');
+        const c = chordInKey(key, mine[i]);
+        const ok = fits[i].includes(mine[i]);
+        const fitNames = fits[i].map((id) => `${id} (${chordInKey(key, id).name})`).join(', ');
+        return `<tr><td>Bar ${i + 1}</td><td>Strong beat${bar.length > 1 ? 's' : ''}: <b>${strong}</b>. You chose ${mine[i]} = ${c.name} <span class="spell">(${c.notes.join(' ')})</span>${ok ? ', which contains ' + (bar.length > 1 ? 'both' : 'it') + '.' : ', which does not.'} Fits: ${fitNames}.</td></tr>`;
+      }).join('');
+      const endNote = mine[3] === 'I' ? '' : '<p>Every choice fits, but try I in the last bar: ending on the home chord is what makes a phrase sound finished.</p>';
+      return `${correct ? 'Every chord fits its melody notes.' : 'Some strong-beat notes clash with the chord under them.'}
+        <table class="fb-table">${rows}</table>
+        ${correct ? endNote : ''}
+        <p class="fn-flow">The composer's original: ${progression.join(' → ')}</p>
+        <div class="slot-actions"><button type="button" class="btn" id="hear-mine">Hear mine</button><button type="button" class="btn" id="hear-orig">Hear the original</button></div>
+        <p class="hint">Click a bar's slot to hear just that bar.</p>`;
+    },
+  };
+}
+
+const quiz = createQuiz({ gameId: 'harmonize', newQuestion });
+</script>
+</body>
+</html>

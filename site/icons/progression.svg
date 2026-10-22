@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>Progression Detective</title>
+<!-- Home-screen icon art, 1024 square (site/README.md, "Home-screen icons").
+     The Ear and Eye family: a flat field in each game's own colour, faint staff
+     lines across it, one bold glyph inside the middle circle, gold for the answer.
+     A magnifying glass over a Roman numeral, IV, in gold. -->
+<rect width="1024" height="1024" fill="#6d47c2"/>
+<g stroke="#fffdf8" stroke-opacity="0.16" stroke-width="12"><line x1="0" y1="336" x2="1024" y2="336"/><line x1="0" y1="424" x2="1024" y2="424"/><line x1="0" y1="512" x2="1024" y2="512"/><line x1="0" y1="600" x2="1024" y2="600"/><line x1="0" y1="688" x2="1024" y2="688"/></g>
+<g transform="translate(512 512) scale(0.92)">
+<circle cx="-60" cy="-60" r="186" fill="none" stroke="#fffdf8" stroke-width="60"/>
+<line x1="80" y1="80" x2="260" y2="260" stroke="#fffdf8" stroke-width="96" stroke-linecap="round"/>
+<rect x="-160" y="-140" width="40" height="160" fill="#ffc94d"/>
+<polygon points="-100,-140 -56,-140 -14,-12 28,-140 72,-140 10,20 -38,20" fill="#ffc94d"/>
+</g>
+</svg>

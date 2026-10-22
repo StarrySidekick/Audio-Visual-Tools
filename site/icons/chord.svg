@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>Chord Quality</title>
+<!-- Home-screen icon art, 1024 square (site/README.md, "Home-screen icons").
+     The Ear and Eye family: a flat field in each game's own colour, faint staff
+     lines across it, one bold glyph inside the middle circle, gold for the answer.
+     Three notes stacked on one stem. -->
+<rect width="1024" height="1024" fill="#1f8a4c"/>
+<g stroke="#fffdf8" stroke-opacity="0.16" stroke-width="12"><line x1="0" y1="336" x2="1024" y2="336"/><line x1="0" y1="424" x2="1024" y2="424"/><line x1="0" y1="512" x2="1024" y2="512"/><line x1="0" y1="600" x2="1024" y2="600"/><line x1="0" y1="688" x2="1024" y2="688"/></g>
+<g transform="translate(546 531) scale(1.1)">
+<ellipse cx="-30" cy="230" rx="104" ry="70" transform="rotate(-22 -30 230)" fill="#fffdf8"/>
+<ellipse cx="-30" cy="70" rx="104" ry="70" transform="rotate(-22 -30 70)" fill="#fffdf8"/>
+<ellipse cx="-30" cy="-90" rx="104" ry="70" transform="rotate(-22 -30 -90)" fill="#fffdf8"/>
+<rect x="34" y="-340" width="36" height="570" rx="4" fill="#fffdf8"/>
+</g>
+</svg>

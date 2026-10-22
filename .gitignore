@@ -4,3 +4,4 @@ __pycache__/
 manifest.json
 media_log.csv
 *_ingest/
+.app-icons/

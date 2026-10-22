@@ -1,0 +1,23 @@
+{
+  "out": "site/icons",
+  "apps": [
+    { "id": "home", "name": "Ear & Eye", "short": "Ear & Eye", "art": "site/icons/home.svg", "theme": "#f7f4ee",
+      "dir": "site/", "pages": ["site/index.html"] },
+    { "id": "note", "name": "Name That Note", "short": "Note", "art": "site/icons/note.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/note/", "start": "site/games/note.html", "scope": "../../games/", "pages": ["site/games/note.html"] },
+    { "id": "interval", "name": "Interval Ear", "short": "Intervals", "art": "site/icons/interval.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/interval/", "start": "site/games/interval.html", "scope": "../../games/", "pages": ["site/games/interval.html"] },
+    { "id": "chord", "name": "Chord Quality", "short": "Chords", "art": "site/icons/chord.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/chord/", "start": "site/games/chord.html", "scope": "../../games/", "pages": ["site/games/chord.html"] },
+    { "id": "scale", "name": "Scale & Mode", "short": "Scales", "art": "site/icons/scale.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/scale/", "start": "site/games/scale.html", "scope": "../../games/", "pages": ["site/games/scale.html"] },
+    { "id": "staff", "name": "Staff Reader", "short": "Staff", "art": "site/icons/staff.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/staff/", "start": "site/games/staff.html", "scope": "../../games/", "pages": ["site/games/staff.html"] },
+    { "id": "progression", "name": "Progression Detective", "short": "Progressions", "art": "site/icons/progression.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/progression/", "start": "site/games/progression.html", "scope": "../../games/", "pages": ["site/games/progression.html"] },
+    { "id": "harmonize", "name": "Harmonize It", "short": "Harmonize", "art": "site/icons/harmonize.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/harmonize/", "start": "site/games/harmonize.html", "scope": "../../games/", "pages": ["site/games/harmonize.html"] },
+    { "id": "roulette", "name": "Chord Roulette", "short": "Roulette", "art": "site/icons/roulette.svg", "theme": "#f7f4ee",
+      "dir": "site/icons/roulette/", "start": "site/games/roulette.html", "scope": "../../games/", "pages": ["site/games/roulette.html"] }
+  ]
+}

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>Harmonize It</title>
+<!-- Home-screen icon art, 1024 square (site/README.md, "Home-screen icons").
+     The Ear and Eye family: a flat field in each game's own colour, faint staff
+     lines across it, one bold glyph inside the middle circle, gold for the answer.
+     A melody, and a second voice moving under it in gold. -->
+<rect width="1024" height="1024" fill="#a8336e"/>
+<g stroke="#fffdf8" stroke-opacity="0.16" stroke-width="12"><line x1="0" y1="336" x2="1024" y2="336"/><line x1="0" y1="424" x2="1024" y2="424"/><line x1="0" y1="512" x2="1024" y2="512"/><line x1="0" y1="600" x2="1024" y2="600"/><line x1="0" y1="688" x2="1024" y2="688"/></g>
+<g transform="translate(512 512) scale(0.92)">
+<ellipse cx="-150" cy="-40" rx="92" ry="64" transform="rotate(-22 -150 -40)" fill="#fffdf8"/>
+<ellipse cx="130" cy="-80" rx="92" ry="64" transform="rotate(-22 130 -80)" fill="#fffdf8"/>
+<rect x="-96" y="-300" width="34" height="260" rx="4" fill="#fffdf8"/>
+<rect x="184" y="-340" width="34" height="260" rx="4" fill="#fffdf8"/>
+<polygon points="-92,-320 222,-360 222,-286 -92,-246" fill="#fffdf8"/>
+<ellipse cx="-150" cy="110" rx="92" ry="64" transform="rotate(-22 -150 110)" fill="#ffc94d"/>
+<ellipse cx="130" cy="70" rx="92" ry="64" transform="rotate(-22 130 70)" fill="#ffc94d"/>
+<rect x="-238" y="110" width="34" height="250" rx="4" fill="#ffc94d"/>
+<rect x="42" y="70" width="34" height="250" rx="4" fill="#ffc94d"/>
+<polygon points="-238,286 76,246 76,320 -238,360" fill="#ffc94d"/>
+</g>
+</svg>

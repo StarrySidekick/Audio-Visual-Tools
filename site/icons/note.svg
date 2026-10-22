@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>Name That Note</title>
+<!-- Home-screen icon art, 1024 square (site/README.md, "Home-screen icons").
+     The Ear and Eye family: a flat field in each game's own colour, faint staff
+     lines across it, one bold glyph inside the middle circle, gold for the answer.
+     A piece of keyboard, the found key lit gold. -->
+<rect width="1024" height="1024" fill="#c2412d"/>
+<g stroke="#fffdf8" stroke-opacity="0.16" stroke-width="12"><line x1="0" y1="336" x2="1024" y2="336"/><line x1="0" y1="424" x2="1024" y2="424"/><line x1="0" y1="512" x2="1024" y2="512"/><line x1="0" y1="600" x2="1024" y2="600"/><line x1="0" y1="688" x2="1024" y2="688"/></g>
+<g transform="translate(512 512) scale(1.1)">
+<path d="M-253 -200 h116 v374 a26 26 0 0 1 -26 26 h-64 a26 26 0 0 1 -26 -26 z" fill="#fffdf8"/>
+<path d="M-123 -200 h116 v374 a26 26 0 0 1 -26 26 h-64 a26 26 0 0 1 -26 -26 z" fill="#fffdf8"/>
+<path d="M7 -200 h116 v374 a26 26 0 0 1 -26 26 h-64 a26 26 0 0 1 -26 -26 z" fill="#ffc94d"/>
+<path d="M137 -200 h116 v374 a26 26 0 0 1 -26 26 h-64 a26 26 0 0 1 -26 -26 z" fill="#fffdf8"/>
+<rect x="-172" y="-214" width="84" height="262" rx="14" fill="#22201d" stroke="#c2412d" stroke-width="16"/>
+<rect x="-42" y="-214" width="84" height="262" rx="14" fill="#22201d" stroke="#c2412d" stroke-width="16"/>
+</g>
+</svg>

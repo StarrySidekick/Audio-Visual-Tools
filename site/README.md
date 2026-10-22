@@ -59,15 +59,14 @@ To change an icon, edit its art in `icons/<id>.svg` (1024 square; keep what
 matters inside the middle circle, 80% of the width, since Android cuts icons
 round). A new game page goes into `app-icons.json` at the repo root, in the
 same commit. Then, from the repo, run the app-icons skill's script (in
-Interpersonal-Games, `.claude/skills/app-icons/`) and this folder's own step:
+Interpersonal-Games, `.claude/skills/app-icons/`):
 
 ```sh
 node <skill folder>/make-icons.mjs --sheet  # every size, the manifests, the icon lines in each page, .app-icons/sheet.png
-node site/icons/set-start.mjs               # starts each game's manifest at its own page
 ```
 
-The second step is needed because the games share one folder, so each
-game's manifest sits in `icons/<id>/` and has to be pointed back at its page.
+The games share one folder, so each game's manifest sits in `icons/<id>/`
+and its `start` in `app-icons.json` points it back at its page.
 `npm test` fails if a page lacks its icon lines or a manifest does not start
 at its page.
 

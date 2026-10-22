@@ -37,7 +37,7 @@ for (const page of pages) {
     for (const icon of m.icons) assert.ok(existsSync(fileOf(new URL(icon.src, manifestUrl))), `${page}: manifest icon ${icon.src} is missing`);
 
     const start = new URL(m.start_url, manifestUrl);
-    assert.equal(fileOf(start), fileOf(pageUrl), `${page}: its manifest starts at ${m.start_url}, not this page (run site/icons/set-start.mjs)`);
+    assert.equal(fileOf(start), fileOf(pageUrl), `${page}: its manifest starts at ${m.start_url}, not this page (check its start in app-icons.json)`);
     assert.ok(start.href.startsWith(new URL(m.scope, manifestUrl).href), `${page}: start_url is outside the manifest's scope`);
   });
 }
